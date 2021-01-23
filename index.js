@@ -1,65 +1,62 @@
 var robot = require('robotjs');
 
+/**
+ * ------------------------------------
+ * ----------- Unfollow bot -----------
+ * ------------------------------------
+ */
+
 const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const onTabPos = { x: 1452, y: 17 };
+const tabPos = { x: 1451, y: 17 };
 let rowPos = { x: 1451, y: 300 };
-const twitterBlue = '1DA1F2';
-
-// Focus tab
-// robot.moveMouse(onTabPos.x, onTabPos.y);
-// robot.mouseClick();
+const twitterBlueColor = '1DA1F2';
+const img = robot.screen.capture();
 
 const isColorEqual = (colorToCompare, colorCompared) => {
     return colorToCompare.toLowerCase() === colorCompared.toLowerCase() ? true : false;
 }
 
-const searchColorPos = async () => {
-    await sleep(1000);
-    let pos = rowPos;
+const searchColorPosByDescending = () => {
+    for (let i = 0; i < 200; i++) {
+        // Stop bot if mouse x move
+        const mPos = robot.getMousePos();
+        // Weird shit, it isn't 1451 here but 1450
+        if(mPos.x !== 1450) {
+            console.log('End - mousepos:',robot.getMousePos());
+            return;
+        }
 
-    for (let i = 1; i < 30; i++) {
-        pos.y = pos.y + 10;
-        const img = robot.screen.capture();
-        robot.moveMouse(pos.x, pos.y);
-        const hex = img.colorAt(pos.x, pos.y);
-        console.log('hex', hex);
+        // Move down to look for blue twitter pix
+        rowPos.y += 5;
+        robot.moveMouse(rowPos.x, rowPos.y);
+        const currentColor = img.colorAt(rowPos.x, rowPos.y);
 
-        if(isColorEqual(hex, twitterBlue)) {
-            return pos;
+        if(isColorEqual(currentColor, twitterBlueColor)) {
+            robot.mouseClick();
+            rowPos.y += 30;
+            robot.moveMouse(rowPos.x, rowPos.y);
+            searchColorPosByDescending();
+        } else {
+            // Scroll down the page
+            if(rowPos.y > 1350) {
+                robot.keyTap('pagedown');
+                rowPos.y = 300;
+                robot.moveMouse(rowPos.x, rowPos.y);
+                searchColorPosByDescending();
+            }
         }
     }
-
-
-    return undefined;
 }
 
+const startUp = () => {
+    // Focus tab
+    robot.moveMouse(tabPos.x, tabPos.y);
+    robot.mouseClick();
 
-// const launchBot = async () => {
-
-// // Set pos on first row
-// robot.moveMouse(rowPos.x, rowPos.y);
-// // robot.moveMouse(rowPos.x, rowPos.y);
-// // robot.keyTap('down');
-// // robot.scrollMouse(-200, -200);
-// // await sleep(2000);
-// rowPos.y += 95;
-// robot.moveMouse(rowPos.x, rowPos.y);
-
-// //Get pixel color
-// // img = robot.screen.capture();
-// // const hex = img.colorAt(robot.getMousePos());
-// }
-
-const startUp = async () => {
-    // for(let i = 0; i < 10; i++) {
-    //     launchBot();
-    //     await sleep(500);
-    // }
-    const val = await searchColorPos();
-    console.log('searchColorPos()', val);
+    searchColorPosByDescending();
 }
 
 startUp();
